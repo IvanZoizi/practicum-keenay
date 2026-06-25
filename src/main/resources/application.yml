@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5431/dbPracticum
+    username: admin
+    password: dbPracticum
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  application:
+    name: demo
+
+logging:
+  level:
+    ru.tbank.practicum.service: DEBUG
+    ru.tbank.practicum: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%mdc] %msg%n"
