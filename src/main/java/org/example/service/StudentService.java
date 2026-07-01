@@ -1,13 +1,13 @@
 package org.example.service;
 
-import org.example.dto.StudentRequestDTO;
-import org.example.dto.StudentResponseDTO;
+import org.example.dto.students.StudentRequestDTO;
+import org.example.dto.students.StudentResponseDTO;
+import org.example.security.CustomUserDetail;
 
 import java.util.List;
 
 public interface StudentService {
-    StudentResponseDTO createStudent(StudentRequestDTO studentRequestDTO);
-    StudentResponseDTO getStudent(Long id);
-    List<StudentResponseDTO> getAllStudents();
-    void deleteStudent(Long id);
+    StudentResponseDTO getStudent(CustomUserDetail customUserDetail, Long id);
+    List<StudentResponseDTO> getStudents(CustomUserDetail customUserDetail);
+    StudentResponseDTO updateStudent(CustomUserDetail customUserDetail, StudentRequestDTO studentRequestDTO, Long id);
 }

@@ -11,6 +11,12 @@ spring:
     show-sql: true
   application:
     name: demo
+  security:
+    key:
+
+server:
+  port:
+    8000
 
 logging:
   level:

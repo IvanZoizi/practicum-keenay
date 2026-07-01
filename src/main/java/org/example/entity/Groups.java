@@ -4,22 +4,19 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "students")
-@NoArgsConstructor
 @Data
-public class Students {
+@Entity
+@NoArgsConstructor
+@Table(name = "groups")
+public class Groups {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @OneToOne
-    @JoinColumn(name = "users_id", referencedColumnName = "id")
-    private Users user;
+    @Column(name ="title")
+    private String title;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id", referencedColumnName = "id")
-    private Groups group;
-
+    @Column(name = "course")
+    private Integer course;
 }

@@ -1,8 +1,9 @@
-package org.example.dto;
+package org.example.dto.students;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.example.validation.EmailValid;
 
 
 @Data
@@ -15,11 +16,6 @@ public class StudentRequestDTO {
     @NonNull
     private String middleName;
     @NonNull
-    private String group;
-    @NonNull
-//    @Pattern(
-//            regexp = "^\\+?[0-9]{10,15}$",
-//            message = "Некорректный номер телефона"
-//    )
-    private String phone;
+    @EmailValid
+    private String  email;
 }

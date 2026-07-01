@@ -1,14 +1,17 @@
 package org.example.entity;
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
-@Table(name = "students")
+@Table(name = "teachers")
 @NoArgsConstructor
 @Data
-public class Students {
+public class Teachers {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id", nullable = false)
@@ -18,8 +21,11 @@ public class Students {
     @JoinColumn(name = "users_id", referencedColumnName = "id")
     private Users user;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id", referencedColumnName = "id")
-    private Groups group;
-
+    @ManyToMany
+    @JoinTable(
+            name = "teachers_groups",
+            joinColumns = @JoinColumn(name = "teacher_id"),
+            inverseJoinColumns = @JoinColumn(name = "groups_id")
+    )
+    private List<Groups> groups;
 }
