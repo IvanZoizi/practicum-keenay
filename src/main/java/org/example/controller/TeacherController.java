@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
 
 @Tag(name = "Teachers Endpoints")
-@RequestMapping("/api/v1/teacher")
+@RequestMapping("/api/v1/teachers")
 public interface TeacherController {
     ResponseEntity<List<TeacherResponseDTO>> getAllTeachers();
     ResponseEntity<TeacherResponseDTO> updateTeachers(@AuthenticationPrincipal CustomUserDetail userDetail,

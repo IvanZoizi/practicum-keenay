@@ -9,6 +9,7 @@ import org.example.dto.teachers.TeacherResponseDTO;
 import org.example.security.CustomUserDetail;
 import org.example.service.TeacherService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,7 @@ public class TeacherControllerImpl implements TeacherController {
 
     @Override
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<TeacherResponseDTO> updateTeachers(@Valid @AuthenticationPrincipal CustomUserDetail userDetail,
                                                              @Valid @RequestBody TeacherRequestDTO teacherRequestDTO,
                                                              @Valid @PathVariable("id") Long id) {

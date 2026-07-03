@@ -15,17 +15,17 @@ public interface StudentMapper {
 
     @Mappings({
             @Mapping(source = "id", target = "id"),
-            @Mapping(source = "user.name", target = "name"),
-            @Mapping(source = "user.surname", target = "surname"),
-            @Mapping(source = "user.middleName", target = "middleName")
+            @Mapping(source = "name", target = "name"),
+            @Mapping(source = "surname", target = "surname"),
+            @Mapping(source = "middleName", target = "middleName")
     })
     StudentResponseDTO getDTO(Students student);
 
     @Mappings({
             @Mapping(source = "id", target = "id"),
-            @Mapping(source = "user.name", target = "name"),
-            @Mapping(source = "user.surname", target = "surname"),
-            @Mapping(source = "user.middleName", target = "middleName"),
+            @Mapping(source = "name", target = "name"),
+            @Mapping(source = "surname", target = "surname"),
+            @Mapping(source = "middleName", target = "middleName"),
             @Mapping(source = "groups", target = "groupsList")
     })
     TeacherResponseDTO getDTO(Teachers teachers);

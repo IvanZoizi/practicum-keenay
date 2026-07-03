@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
 
 @Tag(name = "Groups Endpoints")
-@RequestMapping("/api/v1/group")
+@RequestMapping("/api/v1/groups")
 public interface GroupController {
     ResponseEntity<Groups> createGroup(@RequestBody GroupDTO group);
     ResponseEntity<List<Groups>> getAllGroups();

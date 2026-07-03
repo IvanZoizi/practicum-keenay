@@ -39,21 +39,22 @@ public class GroupsControllerImpl implements GroupController {
     }
 
     @Override
-    @PostMapping("/teacher/{teacherId}/{groupId}")
-    public ResponseEntity<TeacherResponseDTO> addGroupTeacher(@Valid @PathVariable("teacherId") Long teacherId,
-                                                              @Valid @PathVariable("groupId") Long groupId) {
+    @PostMapping("/{groupId}/teacher/{teacherId}")
+    public ResponseEntity<TeacherResponseDTO> addGroupTeacher(
+                                                              @Valid @PathVariable("groupId") Long groupId,
+                                                              @Valid @PathVariable("teacherId") Long teacherId) {
         return ResponseEntity.ok(groupService.addGroupTeacher(teacherId, groupId));
     }
 
     @Override
-    @GetMapping("/teacher/{teacherId}/groups")
+    @GetMapping("/teacher/{teacherId}")
     public ResponseEntity<TeacherResponseDTO> getGroupsByTeacher(Long teacherId) {
         return ResponseEntity.ok(groupService.getTeacher(teacherId));
     }
 
     @Override
-    @DeleteMapping("/teacher/{teacherId}/{groupId}")
-    public ResponseEntity<TeacherResponseDTO> deleteGroupTeacher(Long teacherId, Long groupId) {
+    @DeleteMapping("/{groupId}/teacher{teacherId}")
+    public ResponseEntity<TeacherResponseDTO> deleteGroupTeacher( @Valid @PathVariable("groupId") Long groupId, @Valid @PathVariable("teacherId") Long teacherId) {
         return ResponseEntity.ok(groupService.deleteGroupTeacher(teacherId, groupId));
     }
 }

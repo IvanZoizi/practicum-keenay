@@ -17,6 +17,7 @@ import org.example.repository.UsersRepository;
 import org.example.security.CustomUserDetail;
 import org.example.service.TeacherService;
 import org.example.validation.EmailValidValidator;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,18 +29,17 @@ public class TeacherServiceImpl implements TeacherService {
 
     private final TeachersRepository teachersRepository;
     private final UsersRepository usersRepository;
-    private final GroupsRepository groupsRepository;
     private final StudentMapper studentMapper;
 
-    private void updateUser(Users user, TeacherRequestDTO studentRequestDTO) {
-        user.setName(studentRequestDTO.getName());
-        user.setMiddleName(studentRequestDTO.getMiddleName());
-        user.setSurname(studentRequestDTO.getSurname());
+    private Teachers updateUser(Teachers teacher, TeacherRequestDTO studentRequestDTO) {
+        teacher.setName(studentRequestDTO.getName());
+        teacher.setMiddleName(studentRequestDTO.getMiddleName());
+        teacher.setSurname(studentRequestDTO.getSurname());
         if (!EmailValidValidator.isValidSimple(studentRequestDTO.getEmail())) {
             throw new ValidationException("The mail is incorrect.");
         }
-        user.setEmail(studentRequestDTO.getEmail());
-        usersRepository.save(user);
+        teacher.setEmail(studentRequestDTO.getEmail());
+        return teachersRepository.save(teacher);
     }
 
     @Override
@@ -50,24 +50,32 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public TeacherResponseDTO updateTeachers(CustomUserDetail userDetail, TeacherRequestDTO teacherRequestDTO,
                                              Long id) {
         Users user = userDetail.getUser();
-        if (user.getRole().equals(Roles.TEACHER)) {
-            Teachers source = teachersRepository.findByUser_Id(user.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("The teacher with this ID was not found."));
-            if (id != source.getId()) {
-                throw new AccessDeniedException("Not enough rights");
-            }
-            updateUser(user, teacherRequestDTO);
-            return studentMapper.getDTO(teachersRepository.findByUser_Id(user.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("The user with this ID was not found.")));
+        if (user.getRole() == Roles.TEACHER) {
+            return this.updateTeachersByTeachers(userDetail, teacherRequestDTO, id);
         }
-        user = usersRepository.findById(id)
+        return this.updateTeachersByAdmin(userDetail, teacherRequestDTO, id);
+    }
+
+    @PreAuthorize("hasRole('TEACHER')")
+    public TeacherResponseDTO updateTeachersByTeachers(CustomUserDetail userDetail, TeacherRequestDTO teacherRequestDTO,
+                                             Long id) {
+        Teachers source = teachersRepository.findByUser_Id(userDetail.getUser().getId())
+                .orElseThrow(() -> new EntityNotFoundException("The teacher with this ID was not found."));
+        if (id != source.getId()) {
+            throw new AccessDeniedException("Not enough rights");
+        }
+        return studentMapper.getDTO(updateUser(source, teacherRequestDTO));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public TeacherResponseDTO updateTeachersByAdmin(CustomUserDetail userDetail, TeacherRequestDTO teacherRequestDTO, Long id) {
+        Teachers teacher = teachersRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("The user with this ID was not found."));
-        updateUser(user, teacherRequestDTO);
-        return studentMapper.getDTO(teachersRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("The user with this ID was not found.")));
+        return studentMapper.getDTO(updateUser(teacher, teacherRequestDTO));
     }
 
 

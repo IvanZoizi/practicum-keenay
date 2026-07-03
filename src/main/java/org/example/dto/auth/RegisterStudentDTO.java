@@ -1,5 +1,6 @@
 package org.example.dto.auth;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import org.example.validation.EmailValid;
 
 @Data
 @NoArgsConstructor
-public class RegisterDTO {
+public class RegisterStudentDTO {
     @NonNull
     private String name;
     @NonNull
@@ -25,6 +26,5 @@ public class RegisterDTO {
     @Size(min = 8, max = 20)
     private String password;
     @NonNull
-    private Roles role;
     private Long groupId;
 }

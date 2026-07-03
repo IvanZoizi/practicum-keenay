@@ -12,5 +12,4 @@ public interface TeacherService {
                                        TeacherRequestDTO teacherRequestDTO,
                                       Long id);
 
-
 }

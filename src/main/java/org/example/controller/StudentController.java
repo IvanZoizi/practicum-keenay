@@ -14,9 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
 
 @Tag(name = "Students Endpoints")
-@RequestMapping("/api/v1/student")
+@RequestMapping("/api/v1/students")
 public interface StudentController {
     ResponseEntity<StudentResponseDTO> getStudent(@AuthenticationPrincipal CustomUserDetail userDetail, @PathVariable("id") Long id);
+
     ResponseEntity<List<StudentResponseDTO>> getListStudents(@AuthenticationPrincipal CustomUserDetail userDetail);
     ResponseEntity<StudentResponseDTO> updateStudent(@AuthenticationPrincipal CustomUserDetail userDetail, @RequestBody StudentRequestDTO studentRequestDTO,
                                                      @PathVariable("id") Long id);

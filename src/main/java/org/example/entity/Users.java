@@ -16,19 +16,6 @@ public class Users {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "name")
-    private String name;
-
-    @Column(name = "surname")
-    private String surname;
-
-    @Column(name = "middle_name")
-    private String middleName;
-
-    @Column(name = "email")
-    @EmailValid
-    private String email;
-
     @Column(name = "login")
     private String login;
 
@@ -43,10 +30,6 @@ public class Users {
     public String toString() {
         return "Users{" +
                 "id=" + id +
-                ", name='" + name + '\'' +
-                ", surname='" + surname + '\'' +
-                ", middleName='" + middleName + '\'' +
-                ", email='" + email + '\'' +
                 ", login='" + login + '\'' +
                 ", password='" + password + '\'' +
                 ", role=" + role +

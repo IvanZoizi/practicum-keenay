@@ -14,5 +14,5 @@ public class TeacherRequestDTO {
     @NonNull
     private String middleName;
     @NonNull
-    private String  email;
+    private String email;
 }
