@@ -1,6 +1,7 @@
 package org.example.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.dto.enums.Roles;
@@ -25,6 +26,9 @@ public class Users {
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private Roles role;
+
+    @Column(name = "enabled")
+    private Boolean enabled;
 
     @Override
     public String toString() {

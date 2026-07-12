@@ -1,28 +1,32 @@
 package org.example.service.impl;
 
+import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.CsvToBeanBuilder;
+import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.auth.*;
 import org.example.dto.enums.Roles;
-import org.example.entity.Groups;
-import org.example.entity.Students;
-import org.example.entity.Teachers;
-import org.example.entity.Users;
-import org.example.exception.errors.EntityNotFoundException;
-import org.example.exception.errors.ValidationException;
-import org.example.repository.GroupsRepository;
-import org.example.repository.StudentRepository;
-import org.example.repository.TeachersRepository;
-import org.example.repository.UsersRepository;
+import org.example.entity.*;
+import org.example.exception.errors.*;
+import org.example.repository.*;
 import org.example.security.jwt.JwtService;
 import org.example.service.AuthService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.naming.AuthenticationException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -34,7 +38,9 @@ public class AuthServiceImpl implements AuthService {
     private final StudentRepository studentRepository;
     private final TeachersRepository teachersRepository;
     private final JwtService jwtService;
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final ConfirmationTokenRepository confirmationTokenRepository;
 
     private void checkUserLogin(String login, String password) {
         if (usersRepository.findByLogin(login).isPresent()) {
@@ -48,18 +54,37 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private String createTokenUser(Users user) {
+
+        ConfirmationToken confirmationToken = new ConfirmationToken();
+
+        String tokenValue = UUID.randomUUID().toString();
+        LocalDateTime date = LocalDateTime.now().plusDays(7);
+
+        confirmationToken.setUser(user);
+        confirmationToken.setToken(tokenValue);
+        confirmationToken.setExpiresAt(date);
+
+        confirmationTokenRepository.save(confirmationToken);
+
+        return tokenValue;
+    }
+
     private Users createUser(String login, String password, Roles role) {
         Users user = new Users();
         user.setLogin(login);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
+        if (role.equals(Roles.ADMIN)) {
+            user.setEnabled(true);
+        } else {
+            user.setEnabled(false);
+        }
         return usersRepository.save(user);
     }
 
-    @Override
-    @Transactional
-    public String registerStudent(RegisterStudentDTO registerDto) {
-        Groups group = groupsRepository.findById(registerDto.getGroupId())
+    private Users registerStudent(RegisterCSVDTO registerDto) {
+        Groups group = groupsRepository.findByTitle(registerDto.getGroupTitle())
                     .orElseThrow(() -> new EntityNotFoundException("The group with this ID was not found."));
         this.checkUserLogin(registerDto.getLogin(), registerDto.getPassword());
         Users user = createUser(registerDto.getLogin(),
@@ -73,17 +98,15 @@ public class AuthServiceImpl implements AuthService {
         student.setUser(user);
         student.setGroup(group);
         studentRepository.save(student);
-        return "success";
+        return user;
     }
 
-    @Override
-    @Transactional
-    public String registerTeacher(RegisterTeacherDTO registerTeacherDTO) {
+    private Users registerTeacher(RegisterCSVDTO registerTeacherDTO) {
         List<Groups> groupsList = new ArrayList<>();
-        for (Long idGroup : registerTeacherDTO.getGroupId()) {
-            groupsList.add(groupsRepository.findById(idGroup)
-                    .orElseThrow(() -> new EntityNotFoundException("The group with this ID was not found.")));
-        }
+        groupsList.add(
+                groupsRepository.findByTitle(registerTeacherDTO.getGroupTitle())
+                        .orElseThrow(() -> new EntityNotFoundException("The group with this ID was not found."))
+        );
         this.checkUserLogin(registerTeacherDTO.getLogin(), registerTeacherDTO.getPassword());
         Users user = createUser(registerTeacherDTO.getLogin(),
                 registerTeacherDTO.getPassword(),
@@ -96,7 +119,48 @@ public class AuthServiceImpl implements AuthService {
         teacher.setUser(user);
         teacher.setGroups(groupsList);
         teachersRepository.save(teacher);
-        return "success";
+        return user;
+    }
+
+    private String checkFile(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+
+        if (fileName == null || !fileName.contains(".")) {
+            return "";
+        }
+        System.out.println(fileName.substring(fileName.lastIndexOf(".") + 1));
+        return fileName.substring(fileName.lastIndexOf(".") + 1);
+    }
+
+    private List<RegisterCSVDTO> parseToStudentDto(MultipartFile file) {
+        if (!this.checkFile(file).equals("csv")) {
+            throw new IncorrectFileFormatException("Only the CSV file is supported");
+        }
+
+        try (Reader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+
+            CsvToBean<RegisterCSVDTO> csvToBean = new CsvToBeanBuilder<RegisterCSVDTO>(reader)
+                    .withType(RegisterCSVDTO.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .withSkipLines(1)
+                    .withSeparator(',')
+                    .withIgnoreEmptyLine(true)
+                    .build();
+
+            return csvToBean.parse();
+
+        } catch (Exception e) {
+            throw new FileException("File is incorrect. Error: " + e.getMessage());
+        }
+    }
+
+    private Boolean checkTokenTime(ConfirmationToken confirmationToken) {
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(confirmationToken.getExpiresAt())) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -113,6 +177,10 @@ public class AuthServiceImpl implements AuthService {
         Users user = usersRepository.findByLogin(loginDTO.getLogin())
                 .orElseThrow(() -> new EntityNotFoundException("The user with this ID was not found."));
 
+        if (!user.getEnabled()) {
+            throw new UserIsNotVerified("The user is not verified");
+        }
+
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             throw new AuthenticationException("Invalid password.");
         }
@@ -123,5 +191,80 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtAutorizeToken refreshToken(RefreshTokenDTO refreshTokenDTO) {
         return jwtService.refreshToken(refreshTokenDTO.getRefreshToken());
+    }
+
+    @Override
+    public String register(MultipartFile file) {
+
+        List<RegisterCSVDTO> registerCSVDTOList = parseToStudentDto(file);
+        if (registerCSVDTOList.size() > 1) {
+            throw new AmountOfDataError("Only 1 entry is accepted");
+        }
+
+        RegisterCSVDTO registerDTO = registerCSVDTOList.get(0);
+        Users user;
+        if (registerDTO.getRole().equals(Roles.STUDENT)) {
+            user = registerStudent(registerDTO);
+        } else if (registerDTO.getRole().equals(Roles.TEACHER)) {
+            user = registerTeacher(registerDTO);
+        } else {
+            throw new ValidationException("This role was not found");
+        }
+
+        String token = createTokenUser(user);
+
+        emailService.sendSimpleEmail(
+                registerDTO.getEmail(),
+                "Подтверждение регистрации",
+                "Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + token
+        );
+        System.out.println("Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + token);
+
+        return token;
+    }
+
+    @Override
+    public String accept(String token) {
+        ConfirmationToken confirmationToken = confirmationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new TokenNotFoundException("Token not found"));
+        Users user = confirmationToken.getUser();
+        if (!checkTokenTime(confirmationToken)) {
+
+            confirmationTokenRepository.deleteById(confirmationToken.getId());
+
+            throw new TokenDyingException("Token is dying");
+        } else {
+            usersRepository.updateEnable(true, user.getId());
+            confirmationTokenRepository.deleteById(confirmationToken.getId());
+            return "success";
+        }
+    }
+
+    @Override
+    public String refreshAcceptToken(LoginDTO loginDTO) throws AuthenticationException {
+        Users user = usersRepository.findByLogin(loginDTO.getLogin())
+                .orElseThrow(() -> new EntityNotFoundException("The user with this ID was not found."));
+
+        if (user.getEnabled()) {
+            throw new UserIsNotVerified("The user is verified");
+        }
+
+        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            throw new AuthenticationException("Invalid password.");
+        }
+
+        confirmationTokenRepository.deleteByUserId(user.getId());
+
+
+        String newToken = createTokenUser(user);
+
+        emailService.sendSimpleEmail(
+                    usersRepository.findEmailByUserId(user.getId())
+                            .orElseThrow(() -> new EntityNotFoundException("User not found")),
+                    "Подтверждение регистрации",
+                    "Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + newToken
+        );
+
+        return newToken;
     }
 }

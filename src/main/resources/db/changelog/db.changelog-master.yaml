@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/v1/v1-initial-schema.yaml
+  - include:
+      file: db/changelog/v2/v2-add-enabled-column.yaml
+  - include:
+      file: db/changelog/v3/v3-add-confirmation-token.yaml

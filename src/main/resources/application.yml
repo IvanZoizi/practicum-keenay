@@ -4,23 +4,52 @@ spring:
     username: admin
     password: dbPracticum
     driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    drop-first: false
+    default-schema: public
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true
+
   application:
     name: demo
   security:
-    key: 8074658237c236e39e96e909ac1abb25a3e1773b100096ad6877c439cd452c17
+    key:
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            trust: "*"
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+    default-encoding: UTF-8
 
 server:
-  port:
-    8000
+  port: 8080
 
 logging:
   level:
     ru.tbank.practicum.service: DEBUG
     ru.tbank.practicum: INFO
+    liquibase: DEBUG
+    org.springframework.mail: DEBUG
+    com.sun.mail: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%mdc] %msg%n"

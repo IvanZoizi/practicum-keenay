@@ -1,0 +1,141 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: your_name
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: login
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: groups
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+              - column:
+                  name: course
+                  type: int
+
+        - createTable:
+            tableName: teachers
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+              - column:
+                  name: surname
+                  type: varchar(255)
+              - column:
+                  name: middle_name
+                  type: varchar(255)
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+              - column:
+                  name: users_id
+                  type: bigint
+                  constraints:
+                    unique: true
+                    foreignKeyName: fk_teachers_users
+                    references: users(id)
+
+        - createTable:
+            tableName: students
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+              - column:
+                  name: surname
+                  type: varchar(255)
+              - column:
+                  name: middle_name
+                  type: varchar(255)
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+              - column:
+                  name: users_id
+                  type: bigint
+                  constraints:
+                    unique: true
+                    foreignKeyName: fk_students_users
+                    references: users(id)
+              - column:
+                  name: group_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_students_groups
+                    references: groups(id)
+
+        - createTable:
+            tableName: teachers_groups
+            columns:
+              - column:
+                  name: teacher_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_teachers_groups_teacher
+                    references: teachers(id)
+              - column:
+                  name: groups_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_teachers_groups_group
+                    references: groups(id)
+
+        - addPrimaryKey:
+            tableName: teachers_groups
+            columnNames: teacher_id, groups_id
+            constraintName: pk_teachers_groups
