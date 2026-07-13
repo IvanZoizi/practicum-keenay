@@ -27,4 +27,10 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
             "LEFT JOIN Teachers t ON t.user.id = u.id " +
             "WHERE u.id = ?1")
     Optional<String> findEmailByUserId(Long userId);
+
+    @Query("SELECT u FROM Users u " +
+            "LEFT JOIN Students s ON s.user.id = u.id " +
+            "LEFT JOIN Teachers t ON t.user.id = u.id " +
+            "WHERE s.email = :email OR t.email = :email")
+    Optional<Users> findUserByUserEmail(String email);
 }

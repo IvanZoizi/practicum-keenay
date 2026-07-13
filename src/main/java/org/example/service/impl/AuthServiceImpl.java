@@ -7,11 +7,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.auth.*;
 import org.example.dto.enums.Roles;
+import org.example.dto.events.EmailEvent;
 import org.example.entity.*;
 import org.example.exception.errors.*;
 import org.example.repository.*;
 import org.example.security.jwt.JwtService;
 import org.example.service.AuthService;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,9 +41,10 @@ public class AuthServiceImpl implements AuthService {
     private final StudentRepository studentRepository;
     private final TeachersRepository teachersRepository;
     private final JwtService jwtService;
-    private final EmailService emailService;
+    private final ParseFileService parseFileService;
     private final PasswordEncoder passwordEncoder;
     private final ConfirmationTokenRepository confirmationTokenRepository;
+    private final KafkaTemplate<String, EmailEvent> kafkaTemplateEmail;
 
     private void checkUserLogin(String login, String password) {
         if (usersRepository.findByLogin(login).isPresent()) {
@@ -54,7 +58,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private String createTokenUser(Users user) {
+    private EmailEvent createTokenUser(Users user) {
 
         ConfirmationToken confirmationToken = new ConfirmationToken();
 
@@ -64,10 +68,14 @@ public class AuthServiceImpl implements AuthService {
         confirmationToken.setUser(user);
         confirmationToken.setToken(tokenValue);
         confirmationToken.setExpiresAt(date);
+        confirmationToken.setIsShipped(false);
 
-        confirmationTokenRepository.save(confirmationToken);
+        EmailEvent emailEvent = new EmailEvent();
+        emailEvent.setIdToken(confirmationTokenRepository.save(confirmationToken).getId());
+        emailEvent.setEmail(usersRepository.findEmailByUserId(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User is not found")));
 
-        return tokenValue;
+        return emailEvent;
     }
 
     private Users createUser(String login, String password, Roles role) {
@@ -122,39 +130,6 @@ public class AuthServiceImpl implements AuthService {
         return user;
     }
 
-    private String checkFile(MultipartFile file) {
-        String fileName = file.getOriginalFilename();
-
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
-        }
-        System.out.println(fileName.substring(fileName.lastIndexOf(".") + 1));
-        return fileName.substring(fileName.lastIndexOf(".") + 1);
-    }
-
-    private List<RegisterCSVDTO> parseToStudentDto(MultipartFile file) {
-        if (!this.checkFile(file).equals("csv")) {
-            throw new IncorrectFileFormatException("Only the CSV file is supported");
-        }
-
-        try (Reader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-
-            CsvToBean<RegisterCSVDTO> csvToBean = new CsvToBeanBuilder<RegisterCSVDTO>(reader)
-                    .withType(RegisterCSVDTO.class)
-                    .withIgnoreLeadingWhiteSpace(true)
-                    .withSkipLines(1)
-                    .withSeparator(',')
-                    .withIgnoreEmptyLine(true)
-                    .build();
-
-            return csvToBean.parse();
-
-        } catch (Exception e) {
-            throw new FileException("File is incorrect. Error: " + e.getMessage());
-        }
-    }
-
     private Boolean checkTokenTime(ConfirmationToken confirmationToken) {
         LocalDateTime now = LocalDateTime.now();
         if (now.isAfter(confirmationToken.getExpiresAt())) {
@@ -195,32 +170,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String register(MultipartFile file) {
+        List<RegisterCSVDTO> registerCSVDTOList = parseFileService.parse(file);
+        for (RegisterCSVDTO registerDTO : registerCSVDTOList) {
+            Users user;
+            if (registerDTO.getRole().equals(Roles.STUDENT)) {
+                user = registerStudent(registerDTO);
+            } else if (registerDTO.getRole().equals(Roles.TEACHER)) {
+                user = registerTeacher(registerDTO);
+            } else {
+                throw new ValidationException("This role was not found");
+            }
 
-        List<RegisterCSVDTO> registerCSVDTOList = parseToStudentDto(file);
-        if (registerCSVDTOList.size() > 1) {
-            throw new AmountOfDataError("Only 1 entry is accepted");
+            EmailEvent emailEvent = createTokenUser(user);
+
+            kafkaTemplateEmail.send(
+                    "email-service",
+                    emailEvent
+            );
         }
-
-        RegisterCSVDTO registerDTO = registerCSVDTOList.get(0);
-        Users user;
-        if (registerDTO.getRole().equals(Roles.STUDENT)) {
-            user = registerStudent(registerDTO);
-        } else if (registerDTO.getRole().equals(Roles.TEACHER)) {
-            user = registerTeacher(registerDTO);
-        } else {
-            throw new ValidationException("This role was not found");
-        }
-
-        String token = createTokenUser(user);
-
-        emailService.sendSimpleEmail(
-                registerDTO.getEmail(),
-                "Подтверждение регистрации",
-                "Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + token
-        );
-        System.out.println("Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + token);
-
-        return token;
+        return "send email";
     }
 
     @Override
@@ -255,16 +223,13 @@ public class AuthServiceImpl implements AuthService {
 
         confirmationTokenRepository.deleteByUserId(user.getId());
 
+        EmailEvent emailEvent = createTokenUser(user);
 
-        String newToken = createTokenUser(user);
-
-        emailService.sendSimpleEmail(
-                    usersRepository.findEmailByUserId(user.getId())
-                            .orElseThrow(() -> new EntityNotFoundException("User not found")),
-                    "Подтверждение регистрации",
-                    "Привет! Перейди по ссылке: http://127.0.0.1:8000/api/v1/auth/accept?token=" + newToken
+        kafkaTemplateEmail.send(
+                "email-service",
+                emailEvent
         );
 
-        return newToken;
+        return "send email";
     }
 }

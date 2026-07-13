@@ -30,6 +30,12 @@ public class GlobalExceptionHandler {
         return body;
     }
 
+    @ExceptionHandler(MailHasBeenSentException.class)
+    public ResponseEntity<Object> handleMailHasBeenSentException(MailHasBeenSentException ex) {
+        Map<String, Object> body = createMessage(ex);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(UserIsVerifiedException.class)
     public ResponseEntity<Object> handleUserIsVerifiedException44(UserIsVerifiedException ex) {
         Map<String, Object> body = createMessage(ex);

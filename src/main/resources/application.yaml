@@ -19,6 +19,21 @@ spring:
 
   application:
     name: demo
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: group1
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: emailEvent:org.example.dto.events.EmailEvent
+
   security:
     key:
 
@@ -46,8 +61,8 @@ server:
 
 logging:
   level:
-    ru.tbank.practicum.service: DEBUG
-    ru.tbank.practicum: INFO
+    org.example.service: DEBUG
+    org.example: INFO
     liquibase: DEBUG
     org.springframework.mail: DEBUG
     com.sun.mail: DEBUG
