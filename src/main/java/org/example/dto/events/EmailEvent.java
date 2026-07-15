@@ -8,4 +8,6 @@ import lombok.NoArgsConstructor;
 public class EmailEvent {
     private Long idToken;
     private String email;
+    private Integer attempt;
+    private Throwable ex;
 }

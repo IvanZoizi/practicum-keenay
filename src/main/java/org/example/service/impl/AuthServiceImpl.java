@@ -13,6 +13,8 @@ import org.example.exception.errors.*;
 import org.example.repository.*;
 import org.example.security.jwt.JwtService;
 import org.example.service.AuthService;
+import org.example.service.impl.strategy.EmailSendStrategy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -44,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final ParseFileService parseFileService;
     private final PasswordEncoder passwordEncoder;
     private final ConfirmationTokenRepository confirmationTokenRepository;
-    private final KafkaTemplate<String, EmailEvent> kafkaTemplateEmail;
+    private final EmailSendStrategy emailSendStrategy;
 
     private void checkUserLogin(String login, String password) {
         if (usersRepository.findByLogin(login).isPresent()) {
@@ -56,26 +58,6 @@ public class AuthServiceImpl implements AuthService {
         if (password.length() > 20) {
             throw new ValidationException("The password is too big.");
         }
-    }
-
-    private EmailEvent createTokenUser(Users user) {
-
-        ConfirmationToken confirmationToken = new ConfirmationToken();
-
-        String tokenValue = UUID.randomUUID().toString();
-        LocalDateTime date = LocalDateTime.now().plusDays(7);
-
-        confirmationToken.setUser(user);
-        confirmationToken.setToken(tokenValue);
-        confirmationToken.setExpiresAt(date);
-        confirmationToken.setIsShipped(false);
-
-        EmailEvent emailEvent = new EmailEvent();
-        emailEvent.setIdToken(confirmationTokenRepository.save(confirmationToken).getId());
-        emailEvent.setEmail(usersRepository.findEmailByUserId(user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("User is not found")));
-
-        return emailEvent;
     }
 
     private Users createUser(String login, String password, Roles role) {
@@ -180,13 +162,7 @@ public class AuthServiceImpl implements AuthService {
             } else {
                 throw new ValidationException("This role was not found");
             }
-
-            EmailEvent emailEvent = createTokenUser(user);
-
-            kafkaTemplateEmail.send(
-                    "email-service",
-                    emailEvent
-            );
+            emailSendStrategy.sendEmail(user);
         }
         return "send email";
     }
@@ -223,12 +199,7 @@ public class AuthServiceImpl implements AuthService {
 
         confirmationTokenRepository.deleteByUserId(user.getId());
 
-        EmailEvent emailEvent = createTokenUser(user);
-
-        kafkaTemplateEmail.send(
-                "email-service",
-                emailEvent
-        );
+        emailSendStrategy.sendEmail(user);
 
         return "send email";
     }

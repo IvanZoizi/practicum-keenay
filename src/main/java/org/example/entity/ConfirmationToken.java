@@ -28,4 +28,23 @@ public class ConfirmationToken {
 
     @Column(name = "is_shipped")
     private Boolean isShipped;
+
+    @Column(name = "is_error")
+    private Boolean isError;
+
+    @Column(name = "count_retry")
+    private Integer countRetry;
+
+    @Column(name = "last_attempt_at")
+    private LocalDateTime lastAttempt;
+
+    @Column(name = "error_message", length = 1000)
+    private String errorMessage;
+
+    @PrePersist
+    protected void onCreate() {
+        isShipped = false;
+        isError = false;
+        countRetry = 0;
+    }
 }

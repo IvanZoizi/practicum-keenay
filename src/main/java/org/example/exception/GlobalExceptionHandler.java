@@ -1,5 +1,6 @@
 package org.example.exception;
 
+import jakarta.mail.MessagingException;
 import org.example.exception.errors.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
 
         return body;
+    }
+
+    @ExceptionHandler(EmailDoNotSendException.class)
+    public ResponseEntity<Object> handleEmailDoNotSendException(EmailDoNotSendException ex) {
+        Map<String, Object> body = createMessage(ex);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MailHasBeenSentException.class)

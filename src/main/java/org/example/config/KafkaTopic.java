@@ -9,7 +9,17 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopic {
 
     @Bean
-    public NewTopic newTopicWeather() {
+    public NewTopic newTopicEmailService() {
         return TopicBuilder.name("email-service").build();
+    }
+
+    @Bean
+    public NewTopic newTopicEmailServiceRetry() {
+        return TopicBuilder.name("email-retry").build();
+    }
+
+    @Bean
+    public NewTopic newTopicNoRetryException() {
+        return TopicBuilder.name("email-exception").build();
     }
 }
